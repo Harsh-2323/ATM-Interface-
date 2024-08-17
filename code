@@ -1,0 +1,296 @@
+import sys
+from PySide6.QtWidgets import (
+    QApplication, QWidget, QLabel, QLineEdit, QPushButton,
+    QVBoxLayout, QHBoxLayout, QMessageBox, QGridLayout, QStackedWidget
+)
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont, QPalette, QPixmap, QBrush
+
+class ATM(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        # Initialize basic account attributes
+        self.balance = 0.0
+        self.transaction_history = []
+        self.account_number = None
+        self.password = None
+
+        # Predefined credentials (for demo purposes)
+        self.predefined_account_number = "123456789"
+        self.predefined_password = "HARSH"
+
+        # Path to background image
+        self.background_image_path = "C:/Users/Harsh/Downloads/hand-pulling-debit-card-atm-600nw-730332517.webp"
+
+        # Initialize the UI components
+        self.initUI()
+
+    def initUI(self):
+        # Set up main window properties
+        self.setWindowTitle('ATM Application By Harsh')
+        self.setGeometry(100, 100, 400, 600)
+
+        # Create a stacked widget to manage multiple screens
+        self.stacked_widget = QStackedWidget()
+        self.setLayout(QVBoxLayout())
+        self.layout().addWidget(self.stacked_widget)
+
+        # Initialize individual screens
+        self.initLoginUI()
+        self.initMainUI()
+
+        # Start with the login screen
+        self.stacked_widget.setCurrentWidget(self.login_screen)
+
+    def set_background_image(self, widget, image_path):
+        # Apply a background image to the widget
+        palette = widget.palette()
+        pixmap = QPixmap(image_path)
+        scaled_pixmap = pixmap.scaled(widget.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+        brush = QBrush(scaled_pixmap)
+        palette.setBrush(QPalette.Window, brush)
+        widget.setPalette(palette)
+
+    def initLoginUI(self):
+        # Set up the login screen UI
+        self.login_screen = QWidget()
+        login_layout = QVBoxLayout()
+        login_layout.setContentsMargins(20, 20, 20, 20)
+
+        # Title label for login screen
+        title_label = QLabel('ATM Login')
+        title_label.setFont(QFont('Arial', 24, QFont.Bold))
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setStyleSheet("color: #ffffff; background: rgba(0, 0, 0, 0.5); border-radius: 10px; padding: 10px;")
+        login_layout.addWidget(title_label)
+
+        # Input for account number
+        self.account_input = QLineEdit(self)
+        self.account_input.setPlaceholderText('Enter Account Number')
+        self.account_input.setFont(QFont('Arial', 16))
+        self.account_input.setStyleSheet("""
+            background-color: #ffffff;
+            border: 2px solid #007bff;
+            border-radius: 15px;
+            padding: 10px;
+            color: #000000;
+        """)
+        login_layout.addWidget(self.account_input)
+
+        # Input for password
+        self.password_input = QLineEdit(self)
+        self.password_input.setPlaceholderText('Enter Password')
+        self.password_input.setFont(QFont('Arial', 16))
+        self.password_input.setEchoMode(QLineEdit.Password)
+        self.password_input.setStyleSheet("""
+            background-color: #ffffff;
+            border: 2px solid #007bff;
+            border-radius: 15px;
+            padding: 10px;
+            color: #000000;
+        """)
+        login_layout.addWidget(self.password_input)
+
+        # Login button
+        login_button = QPushButton('Login')
+        login_button.setFont(QFont('Arial', 16))
+        login_button.setStyleSheet("""
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 15px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        """)
+        login_button.clicked.connect(self.validate_login)
+        login_button.setStyleSheet(login_button.styleSheet() + """
+            QPushButton:hover {
+                background-color: #0056b3;
+            }
+        """)
+        login_layout.addWidget(login_button)
+
+        # Add login screen to stacked widget
+        self.login_screen.setLayout(login_layout)
+        self.stacked_widget.addWidget(self.login_screen)
+
+    def initMainUI(self):
+        # Set up the main ATM screen UI
+        self.main_screen = QWidget()
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(20, 20, 20, 20)
+
+        # Set background image for the main screen
+        self.set_background_image(self.main_screen, self.background_image_path)
+
+        # Title label for main screen
+        title_label = QLabel('Welcome to the ATM by HARSH')
+        title_label.setFont(QFont('Arial', 24, QFont.Bold))
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setStyleSheet("color: white; background: rgba(0, 0, 0, 0.5); border-radius: 10px; padding: 10px;")
+        main_layout.addWidget(title_label)
+
+        # Input for amount
+        self.amount_input = QLineEdit(self)
+        self.amount_input.setPlaceholderText('Enter Amount')
+        self.amount_input.setFont(QFont('Arial', 16))
+        self.amount_input.setStyleSheet("""
+            background-color: #ffffff;
+            border: 2px solid #28a745;
+            border-radius: 15px;
+            padding: 10px;
+            color: #000000;
+        """)
+        main_layout.addWidget(self.amount_input)
+
+        # Dial pad for entering amounts
+        dial_layout = QGridLayout()
+        dial_layout.setSpacing(10)
+        buttons = [
+            ('7', 0, 0), ('8', 0, 1), ('9', 0, 2),
+            ('4', 1, 0), ('5', 1, 1), ('6', 1, 2),
+            ('1', 2, 0), ('2', 2, 1), ('3', 2, 2),
+            ('0', 3, 1), ('.', 3, 0), ('Clear', 3, 2)
+        ]
+
+        # Dynamically create and style dial pad buttons
+        for (text, row, col) in buttons:
+            button = QPushButton(text)
+            button.setFont(QFont('Arial', 16, QFont.Bold))
+            button.setStyleSheet("""
+                background-color: #28a745;
+                color: white;
+                border: none;
+                border-radius: 15px;
+                padding: 15px;
+                font-weight: bold;
+                transition: background-color 0.3s;
+            """)
+            button.clicked.connect(lambda _, x=text: self.enter_amount(x))
+            button.setStyleSheet(button.styleSheet() + """
+                QPushButton:hover {
+                    background-color: #1e7e34;
+                }
+            """)
+            dial_layout.addWidget(button, row, col)
+
+        main_layout.addLayout(dial_layout)
+
+        # Buttons for ATM operations
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(15)
+        self.deposit_button = QPushButton('Deposit')
+        self.withdraw_button = QPushButton('Withdraw')
+        self.balance_button = QPushButton('Check Balance')
+        self.history_button = QPushButton('Transaction History')
+
+        # Style and connect buttons to their respective functions
+        for button in [self.deposit_button, self.withdraw_button, self.balance_button, self.history_button]:
+            button.setFont(QFont('Arial', 16, QFont.Bold))
+            button.setStyleSheet("""
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 15px;
+                padding: 15px;
+                font-weight: bold;
+                transition: background-color 0.3s;
+            """)
+            button.clicked.connect({
+                self.deposit_button: self.deposit,
+                self.withdraw_button: self.withdraw,
+                self.balance_button: self.check_balance,
+                self.history_button: self.show_history
+            }[button])
+            button.setStyleSheet(button.styleSheet() + """
+                QPushButton:hover {
+                    background-color: #0056b3;
+                }
+            """)
+            button_layout.addWidget(button)
+
+        main_layout.addLayout(button_layout)
+
+        # Add main screen to stacked widget
+        self.main_screen.setLayout(main_layout)
+        self.stacked_widget.addWidget(self.main_screen)
+
+    def validate_login(self):
+        # Login validation logic
+        account = self.account_input.text()
+        password = self.password_input.text()
+        if not account or not password:
+            QMessageBox.critical(self, 'Error', 'Please enter your account number and password.')
+        elif account == self.predefined_account_number and password == self.predefined_password:
+            self.account_number = account
+            self.password = password
+            self.stacked_widget.setCurrentWidget(self.main_screen)
+        else:
+            QMessageBox.critical(self, 'Error', 'Incorrect account number or password.')
+
+    def enter_amount(self, value):
+        # Handle dial pad input for amount entry
+        if value == 'Clear':
+            self.amount_input.clear()
+        else:
+            self.amount_input.insert(value)
+
+    def get_amount(self):
+        # Get and validate the entered amount
+        try:
+            return float(self.amount_input.text())
+        except ValueError:
+            QMessageBox.critical(self, 'Error', 'Invalid amount. Please enter a number.')
+            return None
+
+    def deposit(self):
+        # Handle deposit action
+        amount = self.get_amount()
+        if amount is not None and amount > 0:
+            self.balance += amount
+            self.transaction_history.append(f"Deposited: {amount:.2f}")
+            QMessageBox.information(self, 'Success', f"Deposited: {amount:.2f}")
+            self.amount_input.clear()
+        else:
+            QMessageBox.critical(self, 'Error', 'Enter a positive amount to deposit.')
+
+    def withdraw(self):
+        # Handle withdraw action
+        amount = self.get_amount()
+        if amount is not None and 0 < amount <= self.balance:
+            self.balance -= amount
+            self.transaction_history.append(f"Withdrawn: {amount:.2f}")
+            QMessageBox.information(self, 'Success', f"Withdrawn: {amount:.2f}")
+            self.amount_input.clear()
+        else:
+            QMessageBox.critical(self, 'Error', 'Insufficient balance or invalid amount.')
+
+    def check_balance(self):
+        # Display current balance
+        QMessageBox.information(self, 'Balance', f"Current balance: {self.balance:.2f}")
+        self.amount_input.clear()
+
+    def show_history(self):
+        # Show transaction history
+        history = "\n".join(self.transaction_history)
+        if history:
+            QMessageBox.information(self, 'Transaction History', history)
+            self.amount_input.clear()
+        else:
+            QMessageBox.information(self, 'Transaction History', 'No transactions yet.')
+
+def main():
+    # Main entry point for the application
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication(sys.argv)
+    atm = ATM()
+    atm.show()
+    sys.exit(app.exec())
+
+if __name__ == '__main__':
+    main()
+
+
